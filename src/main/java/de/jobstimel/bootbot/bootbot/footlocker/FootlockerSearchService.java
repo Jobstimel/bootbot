@@ -1,6 +1,7 @@
 package de.jobstimel.bootbot.bootbot.footlocker;
 
 import de.jobstimel.bootbot.bootbot.BootbotConstants;
+import de.jobstimel.bootbot.bootbot.SearchService;
 import de.jobstimel.bootbot.bootbot.data.Boot;
 import de.jobstimel.bootbot.bootbot.discord.DiscordMessage;
 import de.jobstimel.bootbot.bootbot.discord.DiscordService;
@@ -17,7 +18,7 @@ import java.util.Optional;
 
 @Slf4j
 @Service
-public class FootlockerSearchService {
+public class FootlockerSearchService implements SearchService {
 
     private final DiscordService discordService;
     private final FootlockerMapper footlockerMapper;
@@ -30,6 +31,7 @@ public class FootlockerSearchService {
         this.footlockerCacheService = footlockerCacheService;
     }
 
+    @Override
     public void search(Boot boot) {
         if (!this.footlockerCacheService.containsValue(boot.buildKey())) {
             try {

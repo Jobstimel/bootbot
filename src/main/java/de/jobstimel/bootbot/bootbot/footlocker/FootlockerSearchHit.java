@@ -5,7 +5,7 @@ public record FootlockerSearchHit(String name, String altName, String descriptio
 
     @Override
     public String toString() {
-        return String.format("FootlockerProduct[name=%s, altName=%s, description=%s, price=%s, size=%s]",
+        return String.format("FootlockerSearchHit[name=%s, altName=%s, description=%s, price=%s, size=%s]",
                 name, altName, price, description, size);
     }
 
