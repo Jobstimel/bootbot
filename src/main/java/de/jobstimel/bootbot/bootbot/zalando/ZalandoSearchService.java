@@ -130,10 +130,11 @@ public class ZalandoSearchService implements SearchService {
     }
 
     private Optional<String> retrievePrice(Element searchHit) {
-        if (searchHit.select(HTMLConstants.SECTION).size() != 1) {
+        Element priceElement = searchHit.select(HTMLConstants.SECTION).first();
+        if (priceElement == null) {
             return Optional.empty();
         }
-        return Optional.of(searchHit.select(HTMLConstants.SECTION).text());
+        return Optional.of(priceElement.text().strip());
     }
 
     private String processQuery(String query) {
