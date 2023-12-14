@@ -43,8 +43,8 @@ public class ZalandoSearchService implements SearchService {
                     if (zalandoSearchHit.isPresent()) {
                         sendDiscordMessage(zalandoSearchHit.get());
                         this.zalandoCacheService.addValue(boot.buildKey());
-                        log.info("[NEW HIT]: {} | EU {} | {} | {}", zalandoSearchHit.get().name(), zalandoSearchHit.get().size(),
-                                zalandoSearchHit.get().price(), ZalandoConstants.SHOP_NAME);
+                        log.info("[NEW HIT] - {}: {} | {} {} | {}", ZalandoConstants.SHOP_NAME, zalandoSearchHit.get().name(),
+                                ZalandoConstants.SIZE_TYPE, zalandoSearchHit.get().size(), zalandoSearchHit.get().price());
                     } else {
                         log.warn("Failed to parse search hit for '{}' at '{}'", boot.name(), ZalandoConstants.SHOP_NAME);
                     }

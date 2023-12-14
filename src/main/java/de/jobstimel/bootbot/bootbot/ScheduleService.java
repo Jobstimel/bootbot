@@ -30,14 +30,13 @@ public class ScheduleService {
 
     @Scheduled(fixedDelay = 60000L)
     private void executeAutomaticSearch() {
-        log.info("Started new search run...");
         for (Boot boot : bootbotConfig.getBootsToWatch()) {
             for (SearchService searchService : this.searchServices) {
                 searchService.search(boot);
             }
         }
         this.searchRoundCounter += 1;
-        log.info("Finished search run - completed runs: {}", this.searchRoundCounter);
+        log.info("Completed search run {}", this.searchRoundCounter);
     }
 
 }

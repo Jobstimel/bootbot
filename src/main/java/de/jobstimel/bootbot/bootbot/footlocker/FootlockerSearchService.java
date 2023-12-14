@@ -43,8 +43,8 @@ public class FootlockerSearchService implements SearchService {
                     if (footlockerSearchHit.isPresent()) {
                         sendDiscordMessage(footlockerSearchHit.get());
                         this.footlockerCacheService.addValue(boot.buildKey());
-                        log.info("[NEW HIT]: {} | EU {} | {} | {}", footlockerSearchHit.get().name(), footlockerSearchHit.get().size(),
-                                footlockerSearchHit.get().price(), FootlockerConstants.SHOP_NAME);
+                        log.info("[NEW HIT] - {}: {} | {} {} | {}", FootlockerConstants.SHOP_NAME, footlockerSearchHit.get().name(),
+                                FootlockerConstants.SIZE_TYPE, footlockerSearchHit.get().size(), footlockerSearchHit.get().price());
                     } else {
                         log.warn("Failed to parse search hit for '{}' at '{}'", boot.name(), FootlockerConstants.SHOP_NAME);
                     }

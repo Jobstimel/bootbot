@@ -43,8 +43,8 @@ public class SnipesSearchService implements SearchService {
                     if (optSnipesSearchHit.isPresent()) {
                         sendDiscordMessage(optSnipesSearchHit.get());
                         this.snipesCacheService.addValue(boot.buildKey());
-                        log.info("[NEW HIT]: {} | EU {} | {} | {}", optSnipesSearchHit.get().name(), optSnipesSearchHit.get().size(),
-                                optSnipesSearchHit.get().price(), SnipesConstants.SHOP_NAME);
+                        log.info("[NEW HIT] - {}: {} | {} {} | {}", SnipesConstants.SHOP_NAME, optSnipesSearchHit.get().name(),
+                                SnipesConstants.SIZE_TYPE, optSnipesSearchHit.get().size(), optSnipesSearchHit.get().price());
                     } else {
                         log.warn("Failed to parse search hit for '{}' at '{}'", boot.name(), SnipesConstants.SHOP_NAME);
                     }
