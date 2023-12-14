@@ -1,7 +1,7 @@
 package de.jobstimel.bootbot.bootbot.zalando;
 
 public record ZalandoSearchHit(String name, String altName, String description, String price, String size,
-        String sizeType, String productUrl) {
+        String sizeType, String productLink) {
 
     @Override
     public String toString() {

@@ -7,7 +7,7 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface FootlockerMapper {
 
-    @Mapping(target = "shop", constant = FootlockerConstants.NAME)
+    @Mapping(target = "shop", constant = FootlockerConstants.SHOP_NAME)
     DiscordMessage map(FootlockerSearchHit footlockerSearchHit);
 
 }

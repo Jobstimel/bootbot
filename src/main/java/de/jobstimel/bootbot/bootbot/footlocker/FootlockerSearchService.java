@@ -1,7 +1,9 @@
 package de.jobstimel.bootbot.bootbot.footlocker;
 
-import de.jobstimel.bootbot.bootbot.BootbotConstants;
 import de.jobstimel.bootbot.bootbot.SearchService;
+import de.jobstimel.bootbot.bootbot.constants.BootbotConstants;
+import de.jobstimel.bootbot.bootbot.constants.HTMLConstants;
+import de.jobstimel.bootbot.bootbot.constants.JsoupConstants;
 import de.jobstimel.bootbot.bootbot.data.Boot;
 import de.jobstimel.bootbot.bootbot.discord.DiscordMessage;
 import de.jobstimel.bootbot.bootbot.discord.DiscordService;
@@ -42,7 +44,9 @@ public class FootlockerSearchService implements SearchService {
                         sendDiscordMessage(footlockerSearchHit.get());
                         this.footlockerCacheService.addValue(boot.buildKey());
                         log.info("[NEW HIT]: {} | EU {} | {} | {}", footlockerSearchHit.get().name(), footlockerSearchHit.get().size(),
-                                footlockerSearchHit.get().price(), FootlockerConstants.NAME);
+                                footlockerSearchHit.get().price(), FootlockerConstants.SHOP_NAME);
+                    } else {
+                        log.warn("Failed to parse search hit for '{}' at '{}'", boot.name(), FootlockerConstants.SHOP_NAME);
                     }
                 }
             } catch (IOException e) {
@@ -52,9 +56,9 @@ public class FootlockerSearchService implements SearchService {
     }
 
     private Optional<Element> executeSearch(Boot boot) throws IOException {
-        String searchUrl = buildUrl(boot.name(), boot.size());
+        String searchUrl = buildUrl(boot);
         Document webPage = Jsoup.connect(searchUrl)
-                .userAgent(BootbotConstants.USER_AGENT)
+                .userAgent(JsoupConstants.USER_AGENT)
                 .get();
         Elements searchHits = webPage.select(FootlockerConstants.PRODUCT_CONTAINER);
 
@@ -62,7 +66,28 @@ public class FootlockerSearchService implements SearchService {
             return Optional.empty();
         }
 
-        return findRelevantSearchHit(searchHits, boot.name());
+        return Optional.of(searchHits.get(0));
+    }
+
+    private Optional<FootlockerSearchHit> parseSearchHit(Element productHit, String size) {
+        String productLink = retrieveProductLink(productHit).orElse(BootbotConstants.FALLBACK_TEXT_VALUE);
+        String productNamePrimary = retrieveText(productHit, FootlockerConstants.PRODUCT_NAME_PRIMARY)
+                .orElse(BootbotConstants.FALLBACK_TEXT_VALUE);
+        String productNameAlt = retrieveText(productHit, FootlockerConstants.PRODUCT_NAME_ALT)
+                .orElse(BootbotConstants.FALLBACK_TEXT_VALUE);
+        String productNameSeparator = retrieveText(productHit, FootlockerConstants.PRODUCT_NAME_SEPARATOR)
+                .orElse(BootbotConstants.FALLBACK_TEXT_VALUE);
+        String productPrice = retrieveText(productHit, FootlockerConstants.PRODUCT_PRICE)
+                .orElse(BootbotConstants.FALLBACK_TEXT_VALUE);
+
+        String altName = productNameAlt.split(productNameSeparator)[0].strip();
+        String description = BootbotConstants.FALLBACK_TEXT_VALUE;
+        if (productNameAlt.split(productNameSeparator).length > 1) {
+            description = productNameAlt.split(productNameSeparator)[1].strip();
+        }
+
+        return Optional.of(new FootlockerSearchHit(
+                productNamePrimary, altName, description, productPrice, size, FootlockerConstants.SIZE_TYPE, productLink));
     }
 
     private void sendDiscordMessage(FootlockerSearchHit footlockerSearchHit) {
@@ -70,50 +95,19 @@ public class FootlockerSearchService implements SearchService {
         this.discordService.sendMessage(discordMessage);
     }
 
-    private Optional<Element> findRelevantSearchHit(Elements searchHits, String query) {
-        for (Element searchHit : searchHits) {
-            String productNamePrimary = retrieveText(searchHit, FootlockerConstants.PRODUCT_NAME_PRIMARY)
-                    .orElse(FootlockerConstants.FALLBACK_VALUE);
-            if (productNamePrimary.equalsIgnoreCase(query) || productNamePrimary.contains(query)) {
-                return Optional.of(searchHit);
-            }
-        }
-        return Optional.empty();
+    private String buildUrl(Boot boot) {
+        return FootlockerConstants.SEARCH_URL
+                .replace(FootlockerConstants.QUERY_PLACEHOLDER, boot.name())
+                .replace(FootlockerConstants.GENDER_PLACEHOLDER, boot.gender().getValue())
+                .replace(FootlockerConstants.SIZE_PLACEHOLDER, boot.size());
     }
 
-    private Optional<FootlockerSearchHit> parseSearchHit(Element productHit, String size) {
-        String productLink = retrieveLink(productHit).orElse(FootlockerConstants.FALLBACK_VALUE);
-        String productNamePrimary = retrieveText(productHit, FootlockerConstants.PRODUCT_NAME_PRIMARY)
-                .orElse(FootlockerConstants.FALLBACK_VALUE);
-        String productNameAlt = retrieveText(productHit, FootlockerConstants.PRODUCT_NAME_ALT)
-                .orElse(FootlockerConstants.FALLBACK_VALUE);
-        String productNameSeparator = retrieveText(productHit, FootlockerConstants.PRODUCT_NAME_SEPERATOR)
-                .orElse(FootlockerConstants.FALLBACK_VALUE);
-        String productPrice = retrieveText(productHit, FootlockerConstants.PRODUCT_PRICE)
-                .orElse(FootlockerConstants.FALLBACK_VALUE);
-        
-        String altName = productNameAlt.split(productNameSeparator)[0].strip();
-        String description = FootlockerConstants.FALLBACK_VALUE;
-        if (productNameAlt.split(productNameSeparator).length > 1) {
-            description = productNameAlt.split(productNameSeparator)[1].strip();
-        }
-
-        productPrice = formatPrice(productPrice);
-        
-        return Optional.of(new FootlockerSearchHit(
-                productNamePrimary, altName, description, productPrice, size, FootlockerConstants.SIZE_TYPE, productLink));
-    }
-
-    private String formatPrice(String productPrice) {
-        return productPrice.replace("€", "").strip() + "€";
-    }
-
-    private Optional<String> retrieveLink(Element searchHit) {
+    private Optional<String> retrieveProductLink(Element searchHit) {
         Element element = searchHit.select(FootlockerConstants.PRODUCT_CARD_LINK).first();
         if (element == null) {
             return Optional.empty();
         }
-        return Optional.of(FootlockerConstants.BASE_URL + element.attr("href"));
+        return Optional.of(FootlockerConstants.BASE_URL + element.attr(HTMLConstants.HREF));
     }
 
     private Optional<String> retrieveText(Element productHit, String className) {
@@ -122,12 +116,6 @@ public class FootlockerSearchService implements SearchService {
             return Optional.empty();
         }
         return Optional.of(element.text());
-    }
-
-    private String buildUrl(String name, String size) {
-        return FootlockerConstants.SEARCH_URL
-                .replace(FootlockerConstants.QUERY_PLACEHOLDER, name)
-                .replace(FootlockerConstants.SIZE_PLACEHOLDER, size);
     }
 
 }

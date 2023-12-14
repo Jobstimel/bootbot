@@ -1,11 +1,12 @@
 package de.jobstimel.bootbot.bootbot.zalando;
 
-import de.jobstimel.bootbot.bootbot.BootbotConstants;
 import de.jobstimel.bootbot.bootbot.SearchService;
+import de.jobstimel.bootbot.bootbot.constants.BootbotConstants;
+import de.jobstimel.bootbot.bootbot.constants.HTMLConstants;
+import de.jobstimel.bootbot.bootbot.constants.JsoupConstants;
 import de.jobstimel.bootbot.bootbot.data.Boot;
 import de.jobstimel.bootbot.bootbot.discord.DiscordMessage;
 import de.jobstimel.bootbot.bootbot.discord.DiscordService;
-import de.jobstimel.bootbot.bootbot.footlocker.FootlockerConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -43,7 +44,9 @@ public class ZalandoSearchService implements SearchService {
                         sendDiscordMessage(zalandoSearchHit.get());
                         this.zalandoCacheService.addValue(boot.buildKey());
                         log.info("[NEW HIT]: {} | EU {} | {} | {}", zalandoSearchHit.get().name(), zalandoSearchHit.get().size(),
-                                zalandoSearchHit.get().price(), FootlockerConstants.NAME);
+                                zalandoSearchHit.get().price(), ZalandoConstants.SHOP_NAME);
+                    } else {
+                        log.warn("Failed to parse search hit for '{}' at '{}'", boot.name(), ZalandoConstants.SHOP_NAME);
                     }
                 }
             } catch (IOException e) {
@@ -55,29 +58,21 @@ public class ZalandoSearchService implements SearchService {
     private Optional<Element> executeSearch(Boot boot) throws IOException {
         String searchUrl = buildUrl(boot);
         Document webPage = Jsoup.connect(searchUrl)
-                .userAgent(BootbotConstants.USER_AGENT)
+                .userAgent(JsoupConstants.USER_AGENT)
                 .get();
         Elements searchHits = webPage.select(ZalandoConstants.PRODUCT_CLASSES);
-        if (searchHits.first() == null) {
+        if (searchHits.isEmpty()) {
             return Optional.empty();
         }
 
         return Optional.of(searchHits.get(0));
     }
 
-    private void sendDiscordMessage(ZalandoSearchHit zalandoSearchHit) {
-        DiscordMessage discordMessage = this.zalandoMapper.map(zalandoSearchHit);
-        this.discordService.sendMessage(discordMessage);
-    }
-
     private Optional<ZalandoSearchHit> parseSearchHit(Element searchHit, String size) {
         Optional<String> optGeneralInformation = retrieveInformation(searchHit);
-        Optional<String> optPriceInformation = retrievePrice(searchHit);
-        Optional<String> optUrl = retrieveProductLink(searchHit);
-
         String name, altName, description;
         if (optGeneralInformation.isPresent()) {
-            String[] textParts = optGeneralInformation.get().split("-");
+            String[] textParts = optGeneralInformation.get().split(ZalandoConstants.INFORMATION_DELIMITER);
             if (textParts.length != 3) {
                 return Optional.empty();
             }
@@ -88,6 +83,7 @@ public class ZalandoSearchService implements SearchService {
             return Optional.empty();
         }
 
+        Optional<String> optPriceInformation = retrievePrice(searchHit);
         String price;
         if (optPriceInformation.isPresent()) {
             price = optPriceInformation.get();
@@ -95,51 +91,57 @@ public class ZalandoSearchService implements SearchService {
             return Optional.empty();
         }
 
-        String url;
-        if (optUrl.isPresent()) {
-            url = optUrl.get();
+        Optional<String> optProductLink = retrieveProductLink(searchHit);
+        String productLink;
+        if (optProductLink.isPresent()) {
+            productLink = optProductLink.get();
         } else {
             return Optional.empty();
         }
 
         return Optional.of(new ZalandoSearchHit(
-                name, altName, description, price, size, ZalandoConstants.SIZE_TYPE, url));
+                name, altName, description, price, size, ZalandoConstants.SIZE_TYPE, productLink));
     }
 
-    private Optional<String> retrieveProductLink(Element searchHit) {
-        Element element = searchHit.select("a").first();
-        if (element == null) {
-            return Optional.empty();
-        }
-        return Optional.of(element.attr("href"));
-    }
-
-    private Optional<String> retrieveInformation(Element searchHit) {
-        if (searchHit.select("div.Zhr-fS").size() != 1) {
-            return Optional.empty();
-        }
-        return Optional.of(searchHit.select("div.Zhr-fS").get(0).text());
-    }
-
-    private Optional<String> retrievePrice(Element searchHit) {
-        if (searchHit.select("section").size() != 1) {
-            return Optional.empty();
-        }
-        return Optional.of(searchHit.select("section").text());
+    private void sendDiscordMessage(ZalandoSearchHit zalandoSearchHit) {
+        DiscordMessage discordMessage = this.zalandoMapper.map(zalandoSearchHit);
+        this.discordService.sendMessage(discordMessage);
     }
 
     private String buildUrl(Boot boot) {
-        String query = processQuery(boot.name());
-        String size = processSize(boot.size());
-        return ZalandoConstants.SEARCH_URL.replace(ZalandoConstants.QUERY_PLACEHOLDER, query).replace(ZalandoConstants.SIZE_PLACEHOLDER, size);
+        return ZalandoConstants.SEARCH_URL
+                .replace(ZalandoConstants.QUERY_PLACEHOLDER, processQuery(boot.name()))
+                .replace(ZalandoConstants.SIZE_PLACEHOLDER, processSize(boot.size()));
+    }
+
+    private Optional<String> retrieveProductLink(Element searchHit) {
+        Element element = searchHit.select(HTMLConstants.A).first();
+        if (element == null) {
+            return Optional.empty();
+        }
+        return Optional.of(element.attr(HTMLConstants.HREF));
+    }
+
+    private Optional<String> retrieveInformation(Element searchHit) {
+        if (searchHit.select(HTMLConstants.DIV + ZalandoConstants.INFORMATION_CLASS).size() != 1) {
+            return Optional.empty();
+        }
+        return Optional.of(searchHit.select(HTMLConstants.DIV + ZalandoConstants.INFORMATION_CLASS).get(0).text());
+    }
+
+    private Optional<String> retrievePrice(Element searchHit) {
+        if (searchHit.select(HTMLConstants.SECTION).size() != 1) {
+            return Optional.empty();
+        }
+        return Optional.of(searchHit.select(HTMLConstants.SECTION).text());
     }
 
     private String processQuery(String query) {
-        return query.replaceAll(" ", ZalandoConstants.QUERY_DELIMITER);
+        return query.replaceAll(BootbotConstants.SPACE, ZalandoConstants.QUERY_DELIMITER);
     }
 
     private String processSize(String size) {
-        return size.replace(".", ZalandoConstants.SIZE_DELIMITER);
+        return size.replace(BootbotConstants.DOT, ZalandoConstants.SIZE_DELIMITER);
     }
 
 }

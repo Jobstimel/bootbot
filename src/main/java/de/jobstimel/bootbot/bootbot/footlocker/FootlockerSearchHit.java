@@ -1,7 +1,7 @@
 package de.jobstimel.bootbot.bootbot.footlocker;
 
 public record FootlockerSearchHit(String name, String altName, String description, String price, String size,
-                                  String sizeType, String productUrl) {
+                                  String sizeType, String productLink) {
 
     @Override
     public String toString() {

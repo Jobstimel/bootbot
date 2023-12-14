@@ -1,6 +1,6 @@
 package de.jobstimel.bootbot.bootbot.config;
 
-import de.jobstimel.bootbot.bootbot.BootbotConstants;
+import de.jobstimel.bootbot.bootbot.constants.BootbotConstants;
 import de.jobstimel.bootbot.bootbot.data.Boot;
 import de.jobstimel.bootbot.bootbot.data.Gender;
 import jakarta.annotation.PostConstruct;
@@ -44,9 +44,9 @@ public class BootbotConfig {
                 if (isHeader) {
                     isHeader = false;
                 } else {
-                    String name = line.split(BootbotConstants.BOOT_SEPERATOR)[0].strip();
-                    String size = line.split(BootbotConstants.BOOT_SEPERATOR)[1].strip();
-                    Gender gender = Gender.valueOf(line.split(BootbotConstants.BOOT_SEPERATOR)[2].strip().toUpperCase());
+                    String name = line.split(BootbotConstants.BOOT_DELIMITER)[0].strip();
+                    String size = line.split(BootbotConstants.BOOT_DELIMITER)[1].strip();
+                    Gender gender = Gender.valueOf(line.split(BootbotConstants.BOOT_DELIMITER)[2].strip().toUpperCase());
                     bootsToWatch.add(new Boot(name, size, gender));
                 }
             }

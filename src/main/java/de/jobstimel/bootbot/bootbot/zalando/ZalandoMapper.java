@@ -7,7 +7,7 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface ZalandoMapper {
 
-    @Mapping(target = "shop", constant = ZalandoConstants.NAME)
+    @Mapping(target = "shop", constant = ZalandoConstants.SHOP_NAME)
     DiscordMessage map(ZalandoSearchHit zalandoSearchHit);
 
 }
